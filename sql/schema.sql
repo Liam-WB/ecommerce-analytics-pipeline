@@ -17,15 +17,15 @@ CREATE TABLE products (
 
 CREATE TABLE orders (
     order_id SERIAL PRIMARY KEY,
-    customer_id INT REFERENCES customers(customer_id),
-    order_id DATE NOT NULL,
+    customer_id INT NOT NULL REFERENCES customers(customer_id),
+    order_date DATE NOT NULL,
     status TEXT
 );
 
 CREATE TABLE order_items (
     order_item_id SERIAL PRIMARY KEY,
-    order_id INT REFERENCES orders(order_id),
-    product_id INT REFERENCES products(product_id),
-    quantity INT NOT NULL,
+    order_id INT NOT NULL REFERENCES orders(order_id),
+    product_id INT NOT NULL REFERENCES products(product_id),
+    quantity INT NOT NULL CHECK (quantity > 0),
     unit_price DECIMAL(10,2) NOT NULL
 );
