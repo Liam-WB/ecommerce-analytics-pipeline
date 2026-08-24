@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: ecommerce_postgres
+    environment:
+      POSTGRES_DB: ecommerce_analytics
+      POSTGRES_USER: ecommerce_user
+      POSTGRES_PASSWORD: ecommerce_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./sql/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+
+volumes:
+  postgres_data:

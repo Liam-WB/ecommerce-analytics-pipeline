@@ -1,22 +1,31 @@
-# Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+
 .venv/
 venv/
-.env
+env/
 
-# PostgreSQL / local data
+.env
+.env.*
+!.env.example
+
 *.dump
 *.sql.bak
+postgres_data/
 
-# OS
+*.log
+
+node_modules/
+dist/
+build/
+.npm/
+
 .DS_Store
 Thumbs.db
 
-# IDE
 .vscode/
 .idea/
-
-# Node
-node_modules/
-dist/
+*.swp
+*.swo
