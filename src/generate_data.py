@@ -1,4 +1,6 @@
 import random
+import csv
+
 from datetime import date, timedelta
 
 from faker import Faker
@@ -135,10 +137,27 @@ def generate_order_items(orders, product_count):
 
 
 def save_data(customers, products, orders, order_items):
-    print(f"Generated {len(customers)} customers")
-    print(f"Generated {len(products)} products")
-    print(f"Generated {len(orders)} orders")
-    print(f"Generated {len(order_items)} order items")
+    output_dir = "data/generated"
+
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+
+    datasets = {
+        "customers.csv": customers,
+        "products.csv": products,
+        "orders.csv": orders,
+        "order_items.csv": order_items,
+    }
+
+    for filename, data in datasets.items():
+        filepath = os.path.join(output_dir, filename)
+
+        with open(filepath, "w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=data[0].keys())
+            writer.writeheader()
+            writer.writerows(data)
+
+        print(f"Saved {len(data)} rows to {filepath}")
 
 
 def main():
