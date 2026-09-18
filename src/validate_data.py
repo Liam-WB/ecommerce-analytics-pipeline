@@ -1,6 +1,14 @@
 import psycopg2
 
 
+VALID_STATUSES = {
+    "Delivered",
+    "Processing",
+    "Sent",
+    "Cancelled",
+}
+
+
 def connect_to_database():
     return psycopg2.connect(
         host="localhost",
@@ -33,6 +41,7 @@ def validate_row_counts(connection):
 
     cursor.close()
 
+
 def validate_customer_references(connection):
     cursor = connection.cursor()
 
@@ -52,6 +61,7 @@ def validate_customer_references(connection):
         print(f"✗ Found {invalid_orders} orders with invalid customers")
 
     cursor.close()
+
 
 def validate_product_references(connection):
     cursor = connection.cursor()
@@ -73,6 +83,7 @@ def validate_product_references(connection):
 
     cursor.close()
 
+
 def validate_quantities(connection):
     cursor = connection.cursor()
 
@@ -90,6 +101,7 @@ def validate_quantities(connection):
         print(f"✗ Found {invalid_quantities} invalid quantities")
 
     cursor.close()
+
 
 def validate_prices(connection):
     cursor = connection.cursor()
@@ -110,17 +122,133 @@ def validate_prices(connection):
     cursor.close()
 
 
+def validate_customer_emails(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM customers
+        WHERE email IS NULL
+           OR TRIM(email) = '';
+    """)
+
+    missing_emails = cursor.fetchone()[0]
+
+    if missing_emails == 0:
+        print("✓ All customers have an email")
+    else:
+        print(f"✗ Found {missing_emails} customers with missing emails")
+
+    cursor.close()
+
+
+def validate_duplicate_emails(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM (
+            SELECT email
+            FROM customers
+            GROUP BY email
+            HAVING COUNT(*) > 1
+        ) duplicates;
+    """)
+
+    duplicate_emails = cursor.fetchone()[0]
+
+    if duplicate_emails == 0:
+        print("✓ No duplicate customer emails found")
+    else:
+        print(f"✗ Found {duplicate_emails} duplicate email groups")
+
+    cursor.close()
+
+
+def validate_order_statuses(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM orders
+        WHERE status NOT IN (
+            'Delivered',
+            'Processing',
+            'Sent',
+            'Cancelled'
+        );
+    """)
+
+    invalid_statuses = cursor.fetchone()[0]
+
+    if invalid_statuses == 0:
+        print("✓ All order statuses are valid")
+    else:
+        print(f"✗ Found {invalid_statuses} invalid order statuses")
+
+    cursor.close()
+
+
+def validate_order_dates(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM orders
+        WHERE order_date IS NULL;
+    """)
+
+    invalid_dates = cursor.fetchone()[0]
+
+    if invalid_dates == 0:
+        print("✓ All orders have a date")
+    else:
+        print(f"✗ Found {invalid_dates} orders with missing dates")
+
+    cursor.close()
+
+
+def validate_orders_have_items(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM orders o
+        LEFT JOIN order_items oi
+            ON o.order_id = oi.order_id
+        WHERE oi.order_id IS NULL;
+    """)
+
+    empty_orders = cursor.fetchone()[0]
+
+    if empty_orders == 0:
+        print("✓ All orders contain order items")
+    else:
+        print(f"✗ Found {empty_orders} orders without order items")
+
+    cursor.close()
+
+
 def main():
     print("Validating database...")
+    print()
 
     connection = connect_to_database()
 
     validate_row_counts(connection)
     validate_customer_references(connection)
     validate_product_references(connection)
+    validate_quantities(connection)
+    validate_prices(connection)
+    validate_customer_emails(connection)
+    validate_duplicate_emails(connection)
+    validate_order_statuses(connection)
+    validate_order_dates(connection)
+    validate_orders_have_items(connection)
 
     connection.close()
 
+    print()
     print("Validation complete.")
 
 
