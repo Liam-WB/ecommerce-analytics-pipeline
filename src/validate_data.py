@@ -33,6 +33,82 @@ def validate_row_counts(connection):
 
     cursor.close()
 
+def validate_customer_references(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM orders o
+        LEFT JOIN customers c
+            ON o.customer_id = c.customer_id
+        WHERE c.customer_id IS NULL;
+    """)
+
+    invalid_orders = cursor.fetchone()[0]
+
+    if invalid_orders == 0:
+        print("✓ All orders have valid customers")
+    else:
+        print(f"✗ Found {invalid_orders} orders with invalid customers")
+
+    cursor.close()
+
+def validate_product_references(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM order_items oi
+        LEFT JOIN products p
+            ON oi.product_id = p.product_id
+        WHERE p.product_id IS NULL;
+    """)
+
+    invalid_items = cursor.fetchone()[0]
+
+    if invalid_items == 0:
+        print("✓ All order items have valid products")
+    else:
+        print(f"✗ Found {invalid_items} order items with invalid products")
+
+    cursor.close()
+
+def validate_quantities(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM order_items
+        WHERE quantity <= 0;
+    """)
+
+    invalid_quantities = cursor.fetchone()[0]
+
+    if invalid_quantities == 0:
+        print("✓ All quantities are valid")
+    else:
+        print(f"✗ Found {invalid_quantities} invalid quantities")
+
+    cursor.close()
+
+def validate_prices(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM order_items
+        WHERE unit_price <= 0;
+    """)
+
+    invalid_prices = cursor.fetchone()[0]
+
+    if invalid_prices == 0:
+        print("✓ All unit prices are valid")
+    else:
+        print(f"✗ Found {invalid_prices} invalid unit prices")
+
+    cursor.close()
+
 
 def main():
     print("Validating database...")
@@ -40,6 +116,8 @@ def main():
     connection = connect_to_database()
 
     validate_row_counts(connection)
+    validate_customer_references(connection)
+    validate_product_references(connection)
 
     connection.close()
 
