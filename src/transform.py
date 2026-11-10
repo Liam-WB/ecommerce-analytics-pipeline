@@ -1,4 +1,4 @@
-```python
+
 import csv
 import os
 
@@ -20,6 +20,22 @@ CUSTOMER_FIELDS = [
 REJECTED_FIELDS = CUSTOMER_FIELDS + ["rejection_reason"]
 
 
+# Accepted countries and their standardised names
+COUNTRY_MAPPING = {
+    "uk": "UK",
+    "united kingdom": "UK",
+    "usa": "USA",
+    "canada": "Canada",
+    "australia": "Australia",
+    "germany": "Germany",
+    "france": "France",
+    "spain": "Spain",
+    "ireland": "Ireland",
+}
+
+VALID_COUNTRIES = set(COUNTRY_MAPPING.values())
+
+
 def load_customers(filepath):
     customers = []
 
@@ -34,25 +50,29 @@ def load_customers(filepath):
 
 def clean_emails(customers):
     for customer in customers:
-        email = customer["email"]
+        email = customer.get("email", "")
 
-        if email:
-            customer["email"] = email.strip().lower()
+        customer["email"] = email.strip().lower() if email else ""
+
+    return customers
+
+
+def clean_names(customers):
+    for customer in customers:
+        customer["first_name"] = customer.get("first_name", "").strip()
+        customer["last_name"] = customer.get("last_name", "").strip()
 
     return customers
 
 
 def clean_countries(customers):
-    country_mapping = {
-        "uk": "UK",
-        "united kingdom": "UK",
-    }
-
     for customer in customers:
-        country = customer["country"].strip().lower()
+        country = customer.get("country", "").strip().lower()
 
-        if country in country_mapping:
-            customer["country"] = country_mapping[country]
+        if country in COUNTRY_MAPPING:
+            customer["country"] = COUNTRY_MAPPING[country]
+        else:
+            customer["country"] = country
 
     return customers
 
@@ -78,16 +98,26 @@ def find_duplicate_emails(customers):
 def validate_customer(customer, duplicate_emails):
     errors = []
 
-    if not customer["email"]:
+    email = customer["email"]
+    first_name = customer["first_name"]
+    last_name = customer["last_name"]
+    country = customer["country"]
+
+    if not email:
         errors.append("Missing email")
-    elif customer["email"] in duplicate_emails:
+    elif email in duplicate_emails:
         errors.append("Duplicate email")
 
-    if not customer["first_name"]:
+    if not first_name:
         errors.append("Missing first name")
 
-    if not customer["last_name"]:
+    if not last_name:
         errors.append("Missing last name")
+
+    if not country:
+        errors.append("Missing country")
+    elif country not in VALID_COUNTRIES:
+        errors.append("Unrecognised country")
 
     return errors
 
@@ -105,8 +135,10 @@ def separate_valid_and_rejected(customers):
         )
 
         if errors:
-            customer["rejection_reason"] = "; ".join(errors)
-            rejected_customers.append(customer)
+            rejected_customer = customer.copy()
+            rejected_customer["rejection_reason"] = "; ".join(errors)
+
+            rejected_customers.append(rejected_customer)
         else:
             valid_customers.append(customer)
 
@@ -114,12 +146,16 @@ def separate_valid_and_rejected(customers):
 
 
 def save_customers(customers, filepath, fieldnames):
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    directory = os.path.dirname(filepath)
+
+    if directory:
+        os.makedirs(directory, exist_ok=True)
 
     with open(filepath, "w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(
             file,
             fieldnames=fieldnames,
+            extrasaction="ignore",
         )
 
         writer.writeheader()
@@ -133,12 +169,22 @@ def print_summary(
     valid_customers,
     rejected_customers,
 ):
+    valid_count = len(valid_customers)
+    rejected_count = len(rejected_customers)
+
+    if total_customers:
+        valid_percentage = (valid_count / total_customers) * 100
+        rejected_percentage = (rejected_count / total_customers) * 100
+    else:
+        valid_percentage = 0
+        rejected_percentage = 0
+
     print()
     print("Data quality summary")
     print("--------------------")
-    print(f"Input rows:      {total_customers}")
-    print(f"Valid rows:      {len(valid_customers)}")
-    print(f"Rejected rows:   {len(rejected_customers)}")
+    print(f"Input rows:       {total_customers}")
+    print(f"Valid rows:       {valid_count} ({valid_percentage:.1f}%)")
+    print(f"Rejected rows:    {rejected_count} ({rejected_percentage:.1f}%)")
 
     if rejected_customers:
         print()
@@ -161,11 +207,16 @@ def print_summary(
 def main():
     print("Transforming customer data...")
 
-    customers = load_customers(INPUT_FILE)
+    try:
+        customers = load_customers(INPUT_FILE)
+    except FileNotFoundError:
+        print(f"Error: Input file not found: {INPUT_FILE}")
+        return
 
     total_customers = len(customers)
 
     clean_emails(customers)
+    clean_names(customers)
     clean_countries(customers)
 
     valid_customers, rejected_customers = (
@@ -196,4 +247,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
