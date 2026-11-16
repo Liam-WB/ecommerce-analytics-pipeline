@@ -69,8 +69,9 @@ def generate_customers(number):
 def generate_products():
     products = []
 
-    for name, category, price, cost in PRODUCTS:
+    for product_id, (name, category, price, cost) in enumerate(PRODUCTS, start=1):
         product = {
+            "product_id": product_id,
             "name": name,
             "category": category,
             "price": price,
