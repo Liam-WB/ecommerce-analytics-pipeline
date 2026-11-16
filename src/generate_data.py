@@ -1,5 +1,7 @@
+
 import random
 import csv
+import os
 
 from datetime import date, timedelta
 
@@ -49,8 +51,9 @@ PRODUCTS = [
 def generate_customers(number):
     customers = []
 
-    for _ in range(number):
+    for customer_id in range(1, number + 1):
         customer = {
+            "customer_id": customer_id,
             "first_name": fake.first_name(),
             "last_name": fake.last_name(),
             "email": fake.unique.email(),
@@ -91,8 +94,9 @@ def generate_orders(number, customer_count):
 
     date_range = (end_date - start_date).days
 
-    for _ in range(number):
+    for order_id in range(1, number + 1):
         order = {
+            "order_id": order_id,
             "customer_id": random.randint(1, customer_count),
             "order_date": start_date + timedelta(
                 days=random.randint(0, date_range)
@@ -111,8 +115,10 @@ def generate_orders(number, customer_count):
 def generate_order_items(orders, product_count):
     order_items = []
 
-    for order_id in range(1, len(orders) + 1):
-        number_of_items = random.randint(1, 5)
+    for order in orders:
+        order_id = order["order_id"]
+
+        number_of_items = random.randint(1, min(5, product_count))
 
         selected_products = random.sample(
             range(1, product_count + 1),
@@ -139,8 +145,6 @@ def generate_order_items(orders, product_count):
 
 def save_data(customers, products, orders, order_items):
     output_dir = "data/generated"
-
-    import os
     os.makedirs(output_dir, exist_ok=True)
 
     datasets = {
